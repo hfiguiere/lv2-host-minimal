@@ -28,7 +28,7 @@ fn audio_midi_instrument_test(){
         else if (i % 5000) == 0 {
             midimsg.push((0, [0x80, 72, 96]))
         }
-        let out = host.apply_multi(0, midimsg, [&[0.0], &[0.0]]).unwrap();
+        let out = host.apply_multi(0, &midimsg, [&[0.0], &[0.0]]).unwrap();
         let amplitude = i16::MAX as f32;
         writer.write_sample((out[0][0] * amplitude) as i16).unwrap();
         writer.write_sample((out[1][0] * amplitude) as i16).unwrap();

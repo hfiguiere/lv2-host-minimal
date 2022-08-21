@@ -323,7 +323,7 @@ impl Lv2Host{
     /// of samples returned.
     ///
     /// Returns two buffers of samples, or an error.
-    pub fn apply_multi(&mut self, index: usize, input: Vec<(u64, [u8; 3])>, input_frame: [&[f32]; 2]) -> Result<[&[f32]; 2], ApplyError>{
+    pub fn apply_multi(&mut self, index: usize, input: &[(u64, [u8; 3])], input_frame: [&[f32]; 2]) -> Result<[&[f32]; 2], ApplyError>{
         midi_into_atom_buffer(self.seq_urid, self.midi_urid, &input, &mut self.atom_buf)
             .map_err(ApplyError::AtomWriteError)?;
 
