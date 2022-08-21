@@ -490,6 +490,7 @@ unsafe fn create_ports(world: *mut LilvWorld, plugin: *const LilvPluginImpl) -> 
         let lilv_str = lilv_node_as_string(lilv_name);
         let c_str = CStr::from_ptr(lilv_str as *const i8);
         let name = c_str.to_str().expect("Lv2hm: could not build port name string.").to_owned();
+        lilv_node_free(lilv_name);
 
         let lilv_symbol = lilv_port_get_symbol(plugin, lport);
         let lilv_str = lilv_node_as_string(lilv_symbol);
