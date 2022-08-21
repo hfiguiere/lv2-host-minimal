@@ -47,7 +47,7 @@ pub struct Lv2Host{
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 /// Error when adding a plugin.
 pub enum AddPluginError{
-    /// The maximum number of plugins is already reached.
+    /// The maximum number of plugins has been reached.
     CapacityReached,
     /// More than two audio ports. `.0` contain the number of input requested
     /// and `.1` contain the number of output requested.
@@ -121,7 +121,7 @@ impl Lv2Host{
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     /// Add a plugin to the host.
     ///
-    /// `uri`: it URI of the plugin
+    /// `uri`: then URI of the plugin
     ///
     /// `name`: the name you want to give it.
     ///
@@ -252,7 +252,11 @@ impl Lv2Host{
             false
         }
     }
-
+    /// Set the value for a port of the plugin to the default value
+    ///
+    /// `plugin` is the name of the plugin.
+    /// `port` is the name of the port.
+    /// returns whether or not is succeeded.
     pub fn reset_value(&mut self, plugin: &str, port: &str) -> bool{
         if let Some(index) = self.plugin_names.get(plugin){
             let plug = &mut self.plugins[*index];
@@ -262,6 +266,7 @@ impl Lv2Host{
         }
     }
 
+    /// Returns a [`PluginSheet`][PluginSheet]
     pub fn get_plugin_sheet(&self, index: usize) -> PluginSheet{
         let plug = &self.plugins[index];
         let mut ains = 0;
@@ -293,7 +298,7 @@ impl Lv2Host{
     ///
     /// `input_frame` is a stereo sample.
     ///
-    /// Return the sample.
+    /// Returns the sample.
     pub fn apply(&mut self, index: usize, input: [u8; 3], input_frame: (f32, f32)) -> (f32, f32) {
         if index >= self.plugins.len() { return (0.0, 0.0); }
         self.in_buf[0] = input_frame.0;
@@ -317,7 +322,7 @@ impl Lv2Host{
     /// must be of equal length and their length determine the number
     /// of samples returned.
     ///
-    /// Return two buffers of samples, or an error.
+    /// Returns two buffers of samples, or an error.
     pub fn apply_multi(&mut self, index: usize, input: Vec<(u64, [u8; 3])>, input_frame: [&[f32]; 2]) -> Result<[&[f32]; 2], ApplyError>{
         midi_into_atom_buffer(self.seq_urid, self.midi_urid, &input, &mut self.atom_buf)
             .map_err(ApplyError::AtomWriteError)?;
@@ -376,24 +381,39 @@ struct Plugin{
     ports: Vec<Port>,
 }
 
-#[derive(Debug)]
+/// PluginSheet, a sheet of data on the plugin.
+#[derive(Debug, Clone)]
 pub struct PluginSheet{
+    /// how many audio inputs the plugin has.
     pub audio_ins: usize,
+    /// how many audio outputs the plugin has.
     pub audio_outs: usize,
+    /// Vec of [`PortInfo`][PortInfo] for each port of the plugin.
     pub controls: Vec<PortInfo>,
 }
 
-#[derive(Debug)]
+/// PortInfo contains data regarding a port.
+#[derive(Debug, Clone)]
 pub struct PortInfo{
+    /// Index of the port on the plugin.
     pub index: u32,
+    /// Whether or not the port is optional or not.
     pub optional: bool,
+    /// Whether on not the port is an input port or not.
     pub is_input: bool,
+    /// What kind of port this is.
     pub ptype: PortType,
+    /// The current value of the port.
     pub value: f32,
+    /// The default value for this port.
     pub def: f32,
+    /// The minimum value for this port.
     pub min: f32,
+    /// The maximum value for this port.
     pub max: f32,
+    /// The name of this port.
     pub name: String,
+    /// The symbol of this port.
     pub symbol: String,
 }
 

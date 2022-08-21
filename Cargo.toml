@@ -1,12 +1,12 @@
 [package]
 name = "lv2-host-minimal"
-version = "0.1.5"
-authors = ["Cody Bloemhard <cblmhrd@live.nl>"]
+version = "0.1.6"
+authors = ["Cody Bloemhard <codybloemhard@gmail.com>"]
 edition = "2018"
 description = "A very minimal lv2 host."
 license = "GPL-3.0-only"
 readme = "README.md"
-repository = "https://github.com/ocdy1001/lv2-host-minimal"
+repository = "https://github.com/codybloemhard/lv2-host-minimal"
 keywords = ["lv2","host","plugin"]
 categories = ["multimedia::audio"]
 
