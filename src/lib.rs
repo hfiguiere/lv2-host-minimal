@@ -22,6 +22,7 @@ use lv2_midi::prelude::MidiEvent;
 const LILV_URI_CONNECTION_OPTIONAL: &[u8; 48usize] = b"http://lv2plug.in/ns/lv2core#connectionOptional\0";
 pub const LV2_URID_MAP: &[u8; 34usize] = b"http://lv2plug.in/ns/ext/urid#map\0";
 
+/// A simple host for LV2 plugins.
 pub struct Lv2Host{
     world: *mut LilvWorld,
     lilv_plugins: *const LilvPlugins,
@@ -44,9 +45,14 @@ pub struct Lv2Host{
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Error when adding a plugin.
 pub enum AddPluginError{
+    /// The maximum number of plugins is already reached.
     CapacityReached,
+    /// More than two audio ports. `.0` contain the number of input requested
+    /// and `.1` contain the number of output requested.
     MoreThanTwoInOrOutAudioPorts(usize, usize),
+    /// More than in atom port. `.0` contain the number of ports requested.
     MoreThanOneAtomPort(usize),
     WorldIsNull,
     PluginIsNull,
@@ -55,14 +61,26 @@ pub enum AddPluginError{
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Error when calling [`apply`][Lv2Host::apply] or [`apply_multi`][Lv2Host::apply_multi]
 pub enum ApplyError{
+    /// The plugin index is out of bounds.
     PluginIndexOutOfBound,
+    /// The length of the left and right channel buffer differs.
     LeftRightInputLenUnequal,
+    /// More frames requested than the plugin buffer as room for.
     MoreFramesThanBufferLen,
+    /// Something failed when converting the MIDI events.
     AtomWriteError(AtomWriteError)
 }
 
 impl Lv2Host{
+    /// Create a new LV2 host.
+    ///
+    /// `plugin_cap` is the maximum number of plugin you want to instantiate.
+    ///
+    /// `buffer_len` is the number of sample you want to buffer.
+    ///
+    /// `sample_rate` is the sample rate in Hz.
     pub fn new(plugin_cap: usize, buffer_len: usize, sample_rate: usize) -> Self{
         // setup feature map
         let mut host_map: Pin<Box<HostMap<HashURIDMapper>>> = Box::pin(HashURIDMapper::new().into());
@@ -95,11 +113,19 @@ impl Lv2Host{
         }
     }
 
+    /// Return the index of plugin named `name` if found.
     pub fn get_index(&self, name: &str) -> Option<usize>{
         self.plugin_names.get(name).copied()
     }
 
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    /// Add a plugin to the host.
+    ///
+    /// `uri`: it URI of the plugin
+    ///
+    /// `name`: the name you want to give it.
+    ///
+    /// Return the index of the plugin if added properly, or an error.
     pub fn add_plugin(&mut self, uri: &str, name: String) -> Result<usize, AddPluginError>{
         let feature_vec = vec![lv2_raw::core::LV2Feature {
             uri: LV2_URID_MAP.as_ptr() as *const i8,
@@ -185,6 +211,9 @@ impl Lv2Host{
         Ok(self.plugins.len() - 1)
     }
 
+    /// Remove the plugin with `name`
+    ///
+    /// Return whether it was removed or not.
     pub fn remove_plugin(&mut self, name: &str) -> bool{
         if let Some(index) = self.plugin_names.get(name){
             unsafe{
@@ -212,6 +241,9 @@ impl Lv2Host{
             true
     }
 
+    /// Set value for the plugin named `plugin`.
+    ///
+    /// `port` is the port name, and `value` the float value.
     pub fn set_value(&mut self, plugin: &str, port: &str, value: f32) -> bool{
         if let Some(index) = self.plugin_names.get(plugin){
             let plug = &mut self.plugins[*index];
@@ -253,6 +285,15 @@ impl Lv2Host{
         }
     }
 
+    /// Apply the effect to one sample.
+    ///
+    /// `index` is the plugin index on the host.
+    ///
+    /// `input` is a 3 bytes MIDI message.
+    ///
+    /// `input_frame` is a stereo sample.
+    ///
+    /// Return the sample.
     pub fn apply(&mut self, index: usize, input: [u8; 3], input_frame: (f32, f32)) -> (f32, f32) {
         if index >= self.plugins.len() { return (0.0, 0.0); }
         self.in_buf[0] = input_frame.0;
@@ -266,6 +307,17 @@ impl Lv2Host{
         (self.out_buf[0], self.out_buf[1])
     }
 
+    /// Apply the effect to many samples.
+    ///
+    /// `index` is the plugin index on the host.
+    ///
+    /// `input` is a bunch of time and 3 bytes MIDI messages (tuples).
+    ///
+    /// `input_frame` is two buffers (stereo) of sample. The buffers
+    /// must be of equal length and their length determine the number
+    /// of samples returned.
+    ///
+    /// Return two buffers of samples, or an error.
     pub fn apply_multi(&mut self, index: usize, input: Vec<(u64, [u8; 3])>, input_frame: [&[f32]; 2]) -> Result<[&[f32]; 2], ApplyError>{
         midi_into_atom_buffer(self.seq_urid, self.midi_urid, &input, &mut self.atom_buf)
             .map_err(ApplyError::AtomWriteError)?;

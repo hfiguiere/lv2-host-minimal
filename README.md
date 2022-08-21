@@ -9,6 +9,8 @@ Is not meant to support any kind of GUI.
 ## Example
 
 ```rust
+use lv2hm::Lv2Host;
+
 let mut host = Lv2Host::new(1, 1, 44100);
 host.add_plugin("http://calf.sourceforge.net/plugins/Monosynth", "Organ".to_owned()).expect("Lv2hm: could not add plugin");
 host.set_value("Organ", "MIDI Channel", 0.0);
@@ -24,5 +26,6 @@ for i in 0..44100 {
     }
     let out = host.apply_multi(0, midimsg, [&[0.0], &[0.0]]).unwrap();
     // do something with your audio
+    // here, `out` will contain one sample for each stereo channel.
 }
 ```
